@@ -1,0 +1,9 @@
+gradio
+easyocr
+opencv-python-headless
+pillow
+pandas
+jiwer
+pytz
+python-dotenv
+langchain-ollama

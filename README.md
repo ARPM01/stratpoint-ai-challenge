@@ -6,10 +6,11 @@ Code repository for the Stratpoint AI Challenge for Senior AI Engineer applicati
 
 This repository contains solutions to the exercises provided in the Stratpoint AI Challenge. The challenge consists of two main exercises:
 
-    - Challenge 1 - Predicting Solar Output (Data Science and LLMs),
-    - Challenge 2 - Extracting Data From Receipts (Computer Vision, LLMs)
+- Challenge 1 - Predicting Solar Output (Data Science and LLMs),
 
-Install the required dependencies for both exercises using the provided `requirements.txt` file.
+- Challenge 2 - Extracting Data From Receipts (Computer Vision, LLMs)
+
+Create a virtual environment with Python 3.13.5 and install the required dependencies for both challenges using the provided `requirements.txt` file.
 
     ```bash
     pip install -r requirements.txt
@@ -17,13 +18,12 @@ Install the required dependencies for both exercises using the provided `require
 
 Modify the `.env` file to set the following environment variables:
 
-    - `OLLAMA_BASE_URL`: The base URL for the Ollama server (e.g., `http://localhost:11434`).
-    - `OLLAMA_LLM`: The LLM model to use for text processing (e.g., `qwen2.5:7b`).
-    - `OLLAMA_VLM`: The VLM model to use for vision tasks (e.g., `llava:7b`).
+- `OLLAMA_BASE_URL`: The base URL for the Ollama server (e.g., `http://localhost:11434`).
+- `OLLAMA_LLM`: The LLM model to use for text processing (e.g., `qwen2.5:7b`).
+- `OLLAMA_VLM`: The VLM model to use for vision tasks (e.g., `llava:7b`).
 
 ## Challenge 1
 
-TODO: Add info on how to run gradio demo
 Place the `australia-weather-data` folder under the `exercise-1/data/` directory.
 
 Place the GeoTIFF files under the `exercise-1/data/solar-data/` directory (i.e., solar-data/PVOUT.tif, solar-data/monthly/PVOUT_01.tif, etc.).

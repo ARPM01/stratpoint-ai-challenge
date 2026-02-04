@@ -23,8 +23,25 @@ Modify the `.env` file to set the following environment variables:
 
 ## Challenge 1
 
-TODO: Add info on jupyter notebook
 TODO: Add info on how to run gradio demo
+Place the `australia-weather-data` folder under the `exercise-1/data/` directory.
+
+Place the GeoTIFF files under the `exercise-1/data/solar-data/` directory (i.e., solar-data/PVOUT.tif, solar-data/monthly/PVOUT_01.tif, etc.).
+
+Details on dataset synthesis, model training, and evaluation can be found in the `exercise-1/dataset-preparation.ipynb` notebook.
+
+To simply test the agent on some fixed queries, run:
+
+    ```bash
+    python test_agent.py
+    ```
+
+To run the Gradio app, run:
+
+    ```bash
+    cd exercise-1
+    python app.py
+    ```
 
 ## Challenge 2
 

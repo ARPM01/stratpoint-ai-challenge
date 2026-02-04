@@ -99,6 +99,10 @@ def get_seasonal_weather_defaults(month: int = None) -> str:
         "December",
     ]
 
+    # Calculate cyclical encoding for the month
+    month_sin = np.sin(2 * np.pi * month / 12)
+    month_cos = np.cos(2 * np.pi * month / 12)
+
     if month in [12, 1, 2]:  # Summer
         season = "Summer"
         defaults = {
@@ -119,6 +123,8 @@ def get_seasonal_weather_defaults(month: int = None) -> str:
             "Temp9am": 24.0,
             "Temp3pm": 28.0,
             "RainToday": 0,
+            "month_sin": month_sin,
+            "month_cos": month_cos,
         }
     elif month in [3, 4, 5]:  # Autumn
         season = "Autumn"
@@ -140,6 +146,8 @@ def get_seasonal_weather_defaults(month: int = None) -> str:
             "Temp9am": 18.0,
             "Temp3pm": 22.0,
             "RainToday": 0,
+            "month_sin": month_sin,
+            "month_cos": month_cos,
         }
     elif month in [6, 7, 8]:  # Winter
         season = "Winter"
@@ -161,6 +169,8 @@ def get_seasonal_weather_defaults(month: int = None) -> str:
             "Temp9am": 12.0,
             "Temp3pm": 16.0,
             "RainToday": 0,
+            "month_sin": month_sin,
+            "month_cos": month_cos,
         }
     else:  # Spring (9, 10, 11)
         season = "Spring"
@@ -182,12 +192,18 @@ def get_seasonal_weather_defaults(month: int = None) -> str:
             "Temp9am": 16.0,
             "Temp3pm": 21.0,
             "RainToday": 0,
+            "month_sin": month_sin,
+            "month_cos": month_cos,
         }
 
     result = f"Season: {season} ({month_names[month-1]})\n\nTypical weather conditions for {season} in Australia:\n"
     for param, value in defaults.items():
-        result += f"  {param}: {value}\n"
+        if param in ["month_sin", "month_cos"]:
+            result += f"  {param}: {value:.6f}\n"
+        else:
+            result += f"  {param}: {value}\n"
 
+    result += "\nNote: month_sin and month_cos are cyclical encodings of the month (preserves seasonal periodicity)."
     return result
 
 
@@ -223,6 +239,8 @@ def lookup_location(city: str) -> str:
 
 @tool
 def predict_solar_output(
+    Latitude: float = None,
+    Longitude: float = None,
     MinTemp: float = None,
     MaxTemp: float = None,
     Rainfall: float = None,
@@ -240,11 +258,15 @@ def predict_solar_output(
     Temp9am: float = None,
     Temp3pm: float = None,
     RainToday: int = None,
+    month_sin: float = None,
+    month_cos: float = None,
 ) -> str:
     """
     Predicts daily solar PV output (kWh/kWp) based on weather conditions using XGBoost model.
 
     Args:
+        Latitude: Location latitude (use lookup_location tool to get this from city name).
+        Longitude: Location longitude (use lookup_location tool to get this from city name).
         MinTemp: Minimum temperature (°C) during a particular day.
         MaxTemp: Maximum temperature (°C) during a particular day.
         Rainfall: Precipitation (mm) during a particular day.
@@ -262,9 +284,11 @@ def predict_solar_output(
         Temp9am: Temperature (°C) at 9am.
         Temp3pm: Temperature (°C) at 3pm.
         RainToday:  If today is rainy then 1 (Yes). If today is not rainy then 0 (No).
+        month_sin: Cyclical encoding of month: sin(2π × month / 12). Captures seasonal patterns.
+        month_cos: Cyclical encoding of month: cos(2π × month / 12). Captures seasonal patterns.
 
     Returns:
-        JSON string containing XGBoost prediction (kWh/kWp) and the imputed input usage.
+        JSON string containing XGBoost prediction (kWh/kWp) and the input parameters used.
     """
     # Lazily load resources if not loaded
     if not resources.loaded:
@@ -272,6 +296,8 @@ def predict_solar_output(
 
     # Create a dictionary of inputs
     inputs = {
+        "Latitude": Latitude,
+        "Longitude": Longitude,
         "MinTemp": MinTemp,
         "MaxTemp": MaxTemp,
         "Rainfall": Rainfall,
@@ -289,25 +315,23 @@ def predict_solar_output(
         "Temp9am": Temp9am,
         "Temp3pm": Temp3pm,
         "RainToday": RainToday,
+        "month_sin": month_sin,
+        "month_cos": month_cos,
     }
 
-    # Impute missing values with medians
-    imputed_status = {}
-    final_inputs = {}
-    for col in resources.feature_columns:
-        val = inputs.get(col)
-        if val is None:
-            # Use keys directly if Series, or get method if dict (medians is a Series)
-            # pandas Series supports .get(key, default)
-            median = resources.medians.get(col, 0)
-            final_inputs[col] = median
-            imputed_status[col] = "Imputed (Median)"
-        else:
-            final_inputs[col] = val
-            imputed_status[col] = "Provided"
+    # Check for missing required values
+    missing_params = [
+        col for col in resources.feature_columns if inputs.get(col) is None
+    ]
+    if missing_params:
+        return str(
+            {
+                "error": f"Missing required parameters: {', '.join(missing_params)}. Please use get_seasonal_weather_defaults tool to get complete weather parameters."
+            }
+        )
 
     # Create DataFrame for prediction
-    X_input = pd.DataFrame([final_inputs], columns=resources.feature_columns)
+    X_input = pd.DataFrame([inputs], columns=resources.feature_columns)
 
     results = {}
 
@@ -320,7 +344,6 @@ def predict_solar_output(
     else:
         results["error"] = "XGBoost model not available"
 
-    results["imputation_report"] = imputed_status
-    results["input_used"] = final_inputs
+    results["input_parameters"] = inputs
 
     return str(results)

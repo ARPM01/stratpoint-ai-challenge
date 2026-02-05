@@ -72,7 +72,9 @@ class Evaluator:
         # Try various date formats
         formats = [
             '%d-%m-%Y', '%d/%m/%Y', '%Y-%m-%d',  # 14-06-2018, 11/05/2018, 2016-07-31
+            '%m/%d/%Y', '%m-%d-%Y',               # 03/22/2018 (American format)
             '%d-%m-%y', '%d/%m/%y',               # 24/05/18
+            '%m/%d/%y', '%m-%d-%y',               # 03/22/18 (American format)
             '%d %b %y', '%d %B %y',               # 15 JUN 18
             '%d %b %Y', '%d %B %Y',               # 15 JUNE 2018
             '%b %d, %Y', '%B %d, %Y',             # OCT 3, 2016
@@ -81,7 +83,7 @@ class Evaluator:
         
         for fmt in formats:
             try:
-                parsed = datetime.strptime(date_str.upper(), fmt.upper())
+                parsed = datetime.strptime(date_str, fmt)
                 return parsed.strftime('%Y-%m-%d')
             except ValueError:
                 continue
@@ -133,14 +135,13 @@ class Evaluator:
 
                     # Special handling for price/total field - remove currency units
                     if key == "total":
-                        gt_val = self._normalize_price(gt_val)
-                        pred_val = self._normalize_price(pred_val)
+                        gt_val = float(self._normalize_price(gt_val))
+                        pred_val = float(self._normalize_price(pred_val))
                     
                     # Special handling for date field - normalize format
                     if key == "date":
                         gt_val = self._normalize_date(gt_val)
                         pred_val = self._normalize_date(pred_val)
-
 
                     if gt_val == pred_val:
                         correct_fields += 1

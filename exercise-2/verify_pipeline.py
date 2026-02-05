@@ -1,14 +1,12 @@
 import glob
 import os
 import random
+import time
 
 from evaluator import Evaluator
-from pipelines import (
-    ImprovedMultimodalOCREntityAnalysisPipeline,
-    ImprovedMultimodalOCRPipeline,
-    RawOCREntityAnalysisPipeline,
-    RawOCRPipeline,
-)
+from pipelines import (ImprovedMultimodalOCREntityAnalysisPipeline,
+                       ImprovedMultimodalOCRPipeline,
+                       RawOCREntityAnalysisPipeline, RawOCRPipeline)
 
 
 def verify():
@@ -47,9 +45,14 @@ def verify():
     for p in pipelines:
         print(f"\n--- Testing Pipeline: {p.__class__.__name__} ---")
         try:
+            start_time = time.perf_counter()
             res = p.process(img_path)
+            end_time = time.perf_counter()
+            time_taken = end_time - start_time
+            
             print("Raw Text Length:", len(res.get("raw_text", "")))
             print("Structured Data:", res.get("structured_data"))
+            print(f"Time Taken: {time_taken:.2f} seconds")
 
             metrics = evaluator.evaluate(res, ground_truth)
             for metric, value in metrics.items():

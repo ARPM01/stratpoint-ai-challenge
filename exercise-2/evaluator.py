@@ -1,7 +1,9 @@
 import json
 import os
+import re
+from datetime import datetime
 
-from jiwer import Compose, RemovePunctuation, Strip, ToLowerCase, cer, wer
+from jiwer import cer, wer
 
 
 class Evaluator:
@@ -45,6 +47,48 @@ class Evaluator:
                 return json.load(f)
         return None
 
+    def _normalize_price(self, price_str):
+        """
+        Normalize price strings by removing currency symbols and units.
+        Keeps only digits and decimal points.
+        """
+        # Remove common currency symbols and units
+        price_str = re.sub(r'[RM$£€¥₹SGD,\s]', '', price_str, flags=re.IGNORECASE)
+        # Keep only digits and decimal point
+        price_str = re.sub(r'[^\d.]', '', price_str)
+        return price_str
+
+    def _normalize_date(self, date_str):
+        """
+        Normalize date strings to YYYY-MM-DD format.
+        Handles various formats: 14-06-2018, 11/05/2018, 15 JUN 18, OCT 3, 2016, etc.
+        """
+        if not date_str:
+            return ""
+        
+        # Remove parentheses and extra whitespace
+        date_str = re.sub(r'[()\s]+', ' ', date_str).strip()
+        
+        # Try various date formats
+        formats = [
+            '%d-%m-%Y', '%d/%m/%Y', '%Y-%m-%d',  # 14-06-2018, 11/05/2018, 2016-07-31
+            '%d-%m-%y', '%d/%m/%y',               # 24/05/18
+            '%d %b %y', '%d %B %y',               # 15 JUN 18
+            '%d %b %Y', '%d %B %Y',               # 15 JUNE 2018
+            '%b %d, %Y', '%B %d, %Y',             # OCT 3, 2016
+            '%b %d %Y', '%B %d %Y',               # OCT 3 2016
+        ]
+        
+        for fmt in formats:
+            try:
+                parsed = datetime.strptime(date_str.upper(), fmt.upper())
+                return parsed.strftime('%Y-%m-%d')
+            except ValueError:
+                continue
+        
+        # If parsing fails, return cleaned version
+        return re.sub(r'[^\d/-]', '', date_str).lower()
+
     def evaluate(self, pipeline_result, ground_truth):
         """
         Compares pipeline output with ground truth.
@@ -86,6 +130,17 @@ class Evaluator:
                     # Basic normalization
                     gt_val = str(gt_entities[key]).strip().lower()
                     pred_val = str(pred_entities[key]).strip().lower()
+
+                    # Special handling for price/total field - remove currency units
+                    if key == "total":
+                        gt_val = self._normalize_price(gt_val)
+                        pred_val = self._normalize_price(pred_val)
+                    
+                    # Special handling for date field - normalize format
+                    if key == "date":
+                        gt_val = self._normalize_date(gt_val)
+                        pred_val = self._normalize_date(pred_val)
+
 
                     if gt_val == pred_val:
                         correct_fields += 1

@@ -1,15 +1,13 @@
 import glob
 import json
 import os
+import time
 
 import numpy as np
 from evaluator import Evaluator
-from pipelines import (
-    ImprovedMultimodalOCREntityAnalysisPipeline,
-    ImprovedMultimodalOCRPipeline,
-    RawOCREntityAnalysisPipeline,
-    RawOCRPipeline,
-)
+from pipelines import (ImprovedMultimodalOCREntityAnalysisPipeline,
+                       ImprovedMultimodalOCRPipeline,
+                       RawOCREntityAnalysisPipeline, RawOCRPipeline)
 from tqdm import tqdm
 
 
@@ -50,6 +48,7 @@ def run_evaluation(num_samples=10):
         print(f"\n--- Running Evaluation for: {name} ---")
 
         pipeline_metrics = {"ocr_cer": [], "ocr_wer": [], "entity_accuracy": []}
+        start_time = time.perf_counter()
 
         for image_path in tqdm(test_images):
             try:
@@ -75,6 +74,9 @@ def run_evaluation(num_samples=10):
             except Exception as e:
                 print(f"Error processing {image_path}: {e}")
 
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+
         # Aggregate results
         avg_results = {}
         if pipeline_metrics["ocr_cer"]:
@@ -85,6 +87,7 @@ def run_evaluation(num_samples=10):
             avg_results["Average Entity Accuracy"] = np.mean(
                 pipeline_metrics["entity_accuracy"]
             )
+        avg_results["Total Time (seconds)"] = round(total_time, 2)
 
         results[name] = avg_results
 
@@ -96,4 +99,4 @@ def run_evaluation(num_samples=10):
 
 
 if __name__ == "__main__":
-    run_evaluation(num_samples=5)
+    run_evaluation(num_samples=1)
